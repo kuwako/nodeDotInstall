@@ -1,25 +1,39 @@
 var http = require("http"), 
     fs = require("fs"),
-    ejs = require("ejs");
+    ejs = require("ejs"),
+    qs = require("querystring");
 var settings = require("./settings");
 console.log(settings);
 console.log(settings.port);
 console.log(settings.host);
 var server = http.createServer();
-var template = fs.readFileSync(__dirname + '/public_html/hello.ejs', 'utf-8');
+var template = fs.readFileSync(__dirname + '/public_html/bbs.ejs', 'utf-8');
 var n = 0;
+var posts = [];
 
-server.on('request', function(req, res) {
-    n++;
+function renderForm(posts, res) {
     var data = ejs.render(template, {
-        title: "hello",
-        content: "<strong>World!</strong>",
-        n: n
+        posts: posts 
     });
-
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.write(data);
     res.end();
+}
+
+server.on('request', function(req, res) {
+    if (req.method === 'POST') {
+        req.data = "";
+        req.on("readable", function() {
+            req.data += req.read();
+        });
+        req.on("end", function(){
+            var query = qs.parse(req.data);
+            posts.push(query.name);
+            renderForm(posts, res);
+        });
+    } else {
+        renderForm(posts, res);
+    }
 });
 
 server.listen(settings.port, settings.host);
